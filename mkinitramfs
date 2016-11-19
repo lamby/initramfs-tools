@@ -151,6 +151,7 @@ if dpkg --compare-versions "${version}" lt "2.6.38" 2>/dev/null; then
 		echo "linux-2.6 likely misses ${COMPRESS} support, using gzip"
 fi
 
+[ "${compress}" = gzip ] && "${SOURCE_DATE_EPOCH}" != "" ] && compress="gzip -n"
 [ "${compress}" = lzop ] && compress="lzop -9"
 [ "${compress}" = xz ] && compress="xz --check=crc32"
 
@@ -372,8 +373,14 @@ fi
 # preserve permissions if root builds the image, see #633582
 [ "$(id -ru)" != 0 ] && cpio_owner_root="-R 0:0"
 
+# if SOURCE_DATE_EPOCH is set, ensure that no timestamps are newer than this
+if [ "${SOURCE_DATE_EPOCH}" != "" ]; then
+	find "${DESTDIR}" -newermt "@${SOURCE_DATE_EPOCH}" -print0 | \
+		xargs -0r touch --no-dereference --date="@${SOURCE_DATE_EPOCH}"
+fi
+
 # work around lack of "set -o pipefail" for the following pipe:
-# cd "${DESTDIR}" && find . | cpio --quiet $cpio_owner_root -o -H newc | gzip >>"${outfile}" || exit 1
+# cd "${DESTDIR}" && find . | LC_ALL=C sort | cpio --quiet $cpio_owner_root -o -H newc | gzip >>"${outfile}" || exit 1
 exec 3>&1
 eval `
 	# http://cfaj.freeshell.org/shell/cus-faq-2.html
@@ -381,6 +388,8 @@ eval `
 	cd  "${DESTDIR}"
 	{
 		find . 4>&-; echo "ec1=$?;" >&4
+	} | {
+		LC_ALL=C sort
 	} | {
 		cpio --quiet $cpio_owner_root -o -H newc 4>&-; echo "ec2=$?;" >&4
 	} | ${compress} >>"${outfile}"
