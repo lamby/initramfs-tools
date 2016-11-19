@@ -1,3 +1,9 @@
+initramfs-tools (0.125.0tails1) feature-5630-deterministic-builds; urgency=medium
+
+  * Ensure initrd images are reproducible.
+
+ -- intrigeri <intrigeri@debian.org>  Sat, 19 Nov 2016 18:01:00 +0000
+
 initramfs-tools (0.125) unstable; urgency=medium
 
   * [74597dd] update-initramfs: Remove $USETRIGGERS variable and condition
