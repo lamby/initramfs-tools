@@ -373,14 +373,18 @@ fi
 # preserve permissions if root builds the image, see #633582
 [ "$(id -ru)" != 0 ] && cpio_owner_root="-R 0:0"
 
-# if SOURCE_DATE_EPOCH is set, ensure that no timestamps are newer than this
+# if SOURCE_DATE_EPOCH is set, try and create a reproducible image
 if [ "${SOURCE_DATE_EPOCH}" != "" ]; then
+	# ensure that no timestamps are newer than $SOURCE_DATE_EPOCH
 	find "${DESTDIR}" -newermt "@${SOURCE_DATE_EPOCH}" -print0 | \
 		xargs -0r touch --no-dereference --date="@${SOURCE_DATE_EPOCH}"
+
+	# --reproducible requires cpio >= 2.12
+	cpio --usage | grep -qs -- "--reproducible" && cpio_reproducible="--reproducible"
 fi
 
 # work around lack of "set -o pipefail" for the following pipe:
-# cd "${DESTDIR}" && find . | LC_ALL=C sort | cpio --quiet $cpio_owner_root -o -H newc | gzip >>"${outfile}" || exit 1
+# cd "${DESTDIR}" && find . | LC_ALL=C sort | cpio --quiet $cpio_owner_root $cpio_reproducible -o -H newc | gzip >>"${outfile}" || exit 1
 exec 3>&1
 eval `
 	# http://cfaj.freeshell.org/shell/cus-faq-2.html
@@ -391,7 +395,7 @@ eval `
 	} | {
 		LC_ALL=C sort
 	} | {
-		cpio --quiet $cpio_owner_root -o -H newc 4>&-; echo "ec2=$?;" >&4
+		cpio --quiet $cpio_owner_root $cpio_reproducible -o -H newc 4>&-; echo "ec2=$?;" >&4
 	} | ${compress} >>"${outfile}"
 	echo "ec3=$?;" >&4
 `
