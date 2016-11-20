@@ -1,3 +1,9 @@
+initramfs-tools (0.125.0tails2) feature-5630-deterministic-builds; urgency=medium
+
+  * Fix the patch for reproducibility (Debian#845034).
+
+ -- intrigeri <intrigeri@debian.org>  Sun, 20 Nov 2016 18:16:28 +0000
+
 initramfs-tools (0.125.0tails1) feature-5630-deterministic-builds; urgency=medium
 
   * Ensure initrd images are reproducible.
